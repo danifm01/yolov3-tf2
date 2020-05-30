@@ -30,15 +30,16 @@ def build_example(param: pd.Series, image: str):
     ymax = []
     classes = []
     classes_text = []
-    xmin.append(float(param['x1BB']) / width)
-    ymin.append(float(param['y1BB']) / height)
-    # xmin.append(float(param['xIma']) / width)
-    # ymin.append(float(param['yIma']) / height)
-    xmax.append(float(param['x2BB']) / width)
-    ymax.append(float(param['y2BB']) / height)
-    # Radio
-    # xmax.append(float(param['radioIma']) / width)
-    # ymax.append(float(param['radioIma']) / height)
+    x1 = param['xIma'] - param['radioIma']
+    y1 = param['yIma'] - param['radioIma']
+    x2 = param['xIma'] + param['radioIma']
+    y2 = param['yIma'] + param['radioIma']
+    xmin.append(float(x1) / width)
+    ymin.append(float(y1) / height)
+
+    xmax.append(float(x2) / width)
+    ymax.append(float(y2) / height)
+
     classes_text.append('Drone'.encode('utf8'))
     classes.append(int(0))
     example = tf.train.Example(features=tf.train.Features(feature={

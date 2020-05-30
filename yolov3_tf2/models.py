@@ -25,7 +25,7 @@ from .utils import broadcast_iou
 flags.DEFINE_integer('yolo_max_boxes', 100,
                      'maximum number of boxes per image')
 flags.DEFINE_float('yolo_iou_threshold', 0.5, 'iou threshold')
-flags.DEFINE_float('yolo_score_threshold', 0.5, 'score threshold')
+flags.DEFINE_float('yolo_score_threshold', 0.1, 'score threshold')
 
 yolo_anchors = np.array([(10, 13), (16, 30), (33, 23), (30, 61), (62, 45),
                          (59, 119), (116, 90), (156, 198), (373, 326)],
@@ -307,11 +307,12 @@ def YoloLoss(anchors, classes=80, ignore_thresh=0.5):
         class_loss = obj_mask * sparse_categorical_crossentropy(
             true_class_idx, pred_class)
 
+
         # 6. sum over (batch, gridx, gridy, anchors) => (batch, 1)
         xy_loss = tf.reduce_sum(xy_loss, axis=(1, 2, 3))
         wh_loss = tf.reduce_sum(wh_loss, axis=(1, 2, 3))
         obj_loss = tf.reduce_sum(obj_loss, axis=(1, 2, 3))
         class_loss = tf.reduce_sum(class_loss, axis=(1, 2, 3))
-
         return xy_loss + wh_loss + obj_loss + class_loss
+        #return xy_loss + wh_loss + obj_loss
     return yolo_loss
