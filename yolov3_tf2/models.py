@@ -186,8 +186,11 @@ def yolo_nms(outputs, anchors, masks, classes):
     bbox = tf.concat(b, axis=1)
     confidence = tf.concat(c, axis=1)
     class_probs = tf.concat(t, axis=1)
+    if classes > 1:
+        scores = confidence * class_probs
+    else:
+        scores = confidence
 
-    scores = confidence * class_probs
     boxes, scores, classes, valid_detections = tf.image.combined_non_max_suppression(
         boxes=tf.reshape(bbox, (tf.shape(bbox)[0], -1, 1, 4)),
         scores=tf.reshape(
@@ -197,7 +200,6 @@ def yolo_nms(outputs, anchors, masks, classes):
         iou_threshold=FLAGS.yolo_iou_threshold,
         score_threshold=FLAGS.yolo_score_threshold
     )
-
     return boxes, scores, classes, valid_detections
 
 
@@ -303,16 +305,21 @@ def YoloLoss(anchors, classes=80, ignore_thresh=0.5):
         obj_loss = binary_crossentropy(true_obj, pred_obj)
         obj_loss = obj_mask * obj_loss + \
             (1 - obj_mask) * ignore_mask * obj_loss
-        # TODO: use binary_crossentropy instead
-        class_loss = obj_mask * sparse_categorical_crossentropy(
-            true_class_idx, pred_class)
 
+        # Avoid calculate class_loss if there is only 1 class
+        if pred_class.shape[4] > 1:
+            # TODO: use binary_crossentropy instead
+            class_loss = obj_mask * sparse_categorical_crossentropy(
+                true_class_idx, pred_class)
+            class_loss = tf.reduce_sum(class_loss, axis=(1, 2, 3))
+        else:
+            class_loss = 0
 
         # 6. sum over (batch, gridx, gridy, anchors) => (batch, 1)
         xy_loss = tf.reduce_sum(xy_loss, axis=(1, 2, 3))
         wh_loss = tf.reduce_sum(wh_loss, axis=(1, 2, 3))
         obj_loss = tf.reduce_sum(obj_loss, axis=(1, 2, 3))
-        class_loss = tf.reduce_sum(class_loss, axis=(1, 2, 3))
+
         return xy_loss + wh_loss + obj_loss + class_loss
         #return xy_loss + wh_loss + obj_loss
     return yolo_loss
